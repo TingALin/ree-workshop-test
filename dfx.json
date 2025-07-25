@@ -1,0 +1,17 @@
+{
+  "canisters": {
+    "ree-workshop-canister-backend": {
+      "candid": "src/ree-workshop-canister-backend/ree-workshop-canister-backend.did",
+      "package": "ree-workshop-canister-backend",
+      "type": "rust"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
