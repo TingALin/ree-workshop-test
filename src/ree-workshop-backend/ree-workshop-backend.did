@@ -1,0 +1,179 @@
+type CoinBalance = record { id : text; value : nat };
+type ExchangeError = variant {
+  InvalidSignPsbtArgs : text;
+  InvalidNumeric;
+  ParseUtxoRuneBalanceError : text;
+  Overflow;
+  InvalidInput;
+  PoolAddressNotFound;
+  NatConvertError : nat;
+  CookieBalanceInsufficient : nat;
+  GameNotInInitState;
+  GameEnd;
+  ReorgError : ReorgError;
+  GamerAlreadyExist : text;
+  DuplicateBlock : record { nat32; text };
+  PoolStateExpired : nat64;
+  GamerNotFound : text;
+  GameNotEnd;
+  TooSmallFunds;
+  Unrecoverable;
+  LastStateNotFound;
+  InvalidRuneId;
+  InvalidPool;
+  InvalidPsbt : text;
+  PoolAlreadyExists;
+  GamerCoolingDown : record { text; nat64 };
+  InvalidTxid : text;
+  InvalidLiquidity;
+  DepositRuneBalanceIncorrect : record { text; text };
+  EmptyPool;
+  RuneIndexerResultError : text;
+  LpNotFound;
+  ChainKeyError;
+  FetchRuneIndexerError : record { RejectionCode; text };
+  CustomError : text;
+  InvalidState : text;
+  Recoverable : record { nat32; nat32 };
+  InsufficientFunds;
+  GamerWithdrawRepeatedly : text;
+  RuneIdNotMatch : record { text; text };
+};
+type ExchangeState = record {
+  key : text;
+  address_principal_map : opt vec record { principal; text };
+  states : vec PoolState;
+  game : Game;
+  orchestrator : principal;
+  game_status : GameStatus;
+  address : text;
+  ii_canister : principal;
+};
+type ExecuteTxArgs = record {
+  zero_confirmed_tx_queue_length : nat32;
+  txid : text;
+  intention_set : IntentionSet;
+  intention_index : nat32;
+  psbt_hex : text;
+};
+type Game = record {
+  game_duration : nat64;
+  claimed_cookies : nat;
+  cookie_amount_per_claim : nat;
+  is_end : bool;
+  max_cookies : nat;
+  gamer : opt vec record { text; Gamer };
+  game_start_time : nat64;
+  claim_cooling_down : nat64;
+  gamer_register_fee : nat64;
+};
+type GameAndGamer = record {
+  game_duration : nat64;
+  claimed_cookies : nat;
+  cookie_amount_per_claim : nat;
+  max_cookies : nat;
+  gamer : opt Gamer;
+  game_start_time : nat64;
+  claim_cooling_down : nat64;
+  gamer_register_fee : nat64;
+};
+type GameStatus = variant { Ended; Init; Play };
+type Gamer = record {
+  is_withdrawn : bool;
+  last_click_time : nat64;
+  address : text;
+  cookies : nat;
+};
+type GetPoolInfoArgs = record { pool_address : text };
+type InputCoin = record { coin : CoinBalance; from : text };
+type Intention = record {
+  input_coins : vec InputCoin;
+  output_coins : vec OutputCoin;
+  action : text;
+  exchange_id : text;
+  pool_utxo_spent : vec text;
+  action_params : text;
+  nonce : nat64;
+  pool_address : text;
+  pool_utxo_received : vec Utxo;
+};
+type IntentionSet = record {
+  tx_fee_in_sats : nat64;
+  initiator_address : text;
+  intentions : vec Intention;
+};
+type NewBlockInfo = record {
+  block_hash : text;
+  confirmed_txids : vec text;
+  block_timestamp : nat64;
+  block_height : nat32;
+};
+type OutputCoin = record { to : text; coin : CoinBalance };
+type PoolBasic = record { name : text; address : text };
+type PoolInfo = record {
+  key : text;
+  name : text;
+  btc_reserved : nat64;
+  key_derivation_path : vec blob;
+  coin_reserved : vec CoinBalance;
+  attributes : text;
+  address : text;
+  nonce : nat64;
+  utxos : vec Utxo;
+};
+type PoolState = record {
+  id : opt text;
+  utxo : opt Utxo;
+  user_action : UserAction;
+  nonce : nat64;
+};
+type RegisterInfo = record {
+  utxo : opt Utxo;
+  untweaked_key : text;
+  address : text;
+  nonce : nat64;
+  register_fee : nat64;
+};
+type RejectionCode = variant {
+  NoError;
+  CanisterError;
+  SysTransient;
+  DestinationInvalid;
+  Unknown;
+  SysFatal;
+  CanisterReject;
+};
+type ReorgError = variant {
+  DuplicateBlock : record { height : nat32; hash : text };
+  BlockNotFoundInState : record { height : nat32 };
+  Unrecoverable;
+  Recoverable : record { height : nat32; depth : nat32 };
+};
+type Result = variant { Ok : nat; Err : ExchangeError };
+type Result_1 = variant { Ok; Err : ExchangeError };
+type Result_2 = variant { Ok : text; Err : text };
+type Result_3 = variant { Ok; Err : text };
+type RollbackTxArgs = record { txid : text };
+type UserAction = variant { Withdraw : text; Init; Register : text };
+type Utxo = record {
+  coins : vec CoinBalance;
+  sats : nat64;
+  txid : text;
+  vout : nat32;
+};
+service : {
+  claim : () -> (Result);
+  end_game : () -> (Result_1);
+  execute_tx : (ExecuteTxArgs) -> (Result_2);
+  get_exchange_state : () -> (ExchangeState) query;
+  get_game_and_gamer_infos : (text) -> (GameAndGamer) query;
+  get_pool_info : (GetPoolInfoArgs) -> (opt PoolInfo) query;
+  get_pool_list : () -> (vec PoolBasic) query;
+  get_register_info : () -> (RegisterInfo) query;
+  init : (nat64, nat64, nat64, nat64, nat, nat, principal, principal) -> (
+      Result_3,
+    );
+  new_block : (NewBlockInfo) -> (Result_3);
+  reset_blocks : () -> ();
+  rollback_tx : (RollbackTxArgs) -> (Result_3);
+}
